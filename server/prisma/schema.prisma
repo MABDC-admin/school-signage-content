@@ -1,0 +1,139 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum ContentType {
+  IMAGE
+  VIDEO
+  WEB
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AlertType {
+  INFO
+  WARNING
+  ERROR
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  role      UserRole @default(VIEWER)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  audit_logs AuditLog[]
+
+  @@map("users")
+}
+
+model Display {
+  id           String              @id @default(uuid())
+  name         String
+  location     String?
+  secret_key   String              @default(uuid())
+  last_seen_at DateTime?
+  created_at   DateTime            @default(now())
+  updated_at   DateTime            @updatedAt
+  assignments  DisplayAssignment[]
+
+  @@map("displays")
+}
+
+model ContentItem {
+  id             String         @id @default(uuid())
+  title          String
+  url            String
+  type           ContentType
+  duration       Int            @default(10)
+  priority       Int            @default(0)
+  status         ContentStatus  @default(DRAFT)
+  start_at       DateTime?
+  end_at         DateTime?
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+  playlist_items PlaylistItem[]
+
+  @@map("content_items")
+}
+
+model Playlist {
+  id          String              @id @default(uuid())
+  name        String
+  description String?
+  created_at  DateTime            @default(now())
+  updated_at  DateTime            @updatedAt
+  items       PlaylistItem[]
+  assignments DisplayAssignment[]
+
+  @@map("playlists")
+}
+
+model PlaylistItem {
+  id              String      @id @default(uuid())
+  playlist_id     String
+  content_item_id String
+  order_index     Int         @default(0)
+  created_at      DateTime    @default(now())
+  
+  playlist     Playlist    @relation(fields: [playlist_id], references: [id], onDelete: Cascade)
+  content_item ContentItem @relation(fields: [content_item_id], references: [id], onDelete: Cascade)
+
+  @@map("playlist_items")
+}
+
+model DisplayAssignment {
+  id          String   @id @default(uuid())
+  display_id  String
+  playlist_id String
+  is_active   Boolean  @default(false)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  display  Display  @relation(fields: [display_id], references: [id], onDelete: Cascade)
+  playlist Playlist @relation(fields: [playlist_id], references: [id], onDelete: Cascade)
+
+  @@map("display_assignments")
+}
+
+model Alert {
+  id         String    @id @default(uuid())
+  title      String
+  message    String
+  type       AlertType
+  is_active  Boolean   @default(false)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+
+  @@map("alerts")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  user_id     String?
+  action      String
+  entity_type String
+  entity_id   String?
+  details     Json?
+  created_at  DateTime @default(now())
+
+  user User? @relation(fields: [user_id], references: [id])
+
+  @@map("audit_logs")
+}
