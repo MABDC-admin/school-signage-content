@@ -1,5 +1,7 @@
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+console.log('🔌 API URL Configured:', API_URL); // Debug logging
+
 
 export async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const response = await fetch(`${API_URL}${endpoint}`, {
